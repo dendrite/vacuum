@@ -4,16 +4,21 @@ class AttributeItem {
 
     String name
     Object value
-    Type type
+    TypeItem type
 
-    public AttributeItem(){
-        this.name = null;
-        this.value = null;
-        this.type = Type.STRING
+    static mapping = {
+        type enumType: 'ordinal'
     }
 
     static constraints = {
     }
+
+    public AttributeItem(){
+        this.name = null;
+        this.value = null;
+        this.type = TypeItem.STRING
+    }
+
 
     boolean equals(o) {
         if (this.is(o)) return true
@@ -49,7 +54,15 @@ class AttributeItem {
                 '}';
     }
 
-    enum Type{
-        STRING, INTEGER, DOUBLE, IMAGE, BYTES
+    public enum TypeItem {
+        STRING(1),
+        INTEGER(2),
+        DOUBLE(3),
+        IMAGE(4),
+        BYTES(5)
+
+        final int id
+
+        private TypeItem(int id) { this.id = id }
     }
 }

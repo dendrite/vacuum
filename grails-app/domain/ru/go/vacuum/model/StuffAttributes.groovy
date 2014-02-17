@@ -3,15 +3,22 @@ package ru.go.vacuum.model
 class StuffAttributes {
 
     String title
-    StuffCategory type
-    StuffAttributes parent
-
+//    StuffCategory type
+//    StuffAttributes parent
 
     String description
 
-    AttributeItem.Type attributeType = AttributeItem.Type.STRING
+    AttributeItem.TypeItem attributeType = AttributeItem.TypeItem.STRING
 
-    List<AttributeItem> attributes
+//    List<AttributeItem> attributes
+
+    static belongsTo = [parent: StuffAttributes]
+    static hasMany = [attributes: AttributeItem]
+    static hasOne = [type: StuffCategory]
+
+    static mapping = {
+        attributeType enumType: 'ordinal'
+    }
 
     static constraints = {
     }
