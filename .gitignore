@@ -1,43 +1,75 @@
-# .gitignore for Grails 1.2 and 1.3
-
-# web application files
-/web-app/WEB-INF
-
-# IDE support files
-/.classpath
-/.launch
-/.project
-/.settings
-/*.launch
-/*.tmproj
-/ivy*
-/eclipse
-
-# default HSQL database files for production mode
-/prodDb.*
-
-# general HSQL database files
-*Db.properties
-*Db.script
-
-# logs
-/stacktrace.log
-/test/reports
-/logs
-
-# project release file
-/*.war
-
-# plugin release file
-/*.zip
-
-# older plugin install locations
-/plugins
-/web-app/plugins
-/web-app/WEB-INF/classes
-
-# "temporary" build files
+#Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+ 
+ 
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+ 
+ 
+# Logs and databases #
+######################
+*.log
+ 
+ 
+# OS generated files #
+######################
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+ 
+ 
+# Editor Files #
+################
+*~
+*.swp
+ 
+ 
+# Gradle Files #
+################
+.gradle
+ 
+ 
+# Build output directies
 /target
+*/target
+/build
+*/build
+*/bin
+ 
 
-# other
+
+# IntelliJ specific files/directories
+out
+*.idea
+*.ipr
 *.iws
+*.iml
+atlassian-ide-plugin.xml
+ 
+ 
+# Eclipse specific files/directories
+.classpath
+.project
+.settings
+.metadata
+ 
+ 
+# NetBeans specific files/directories
+.nbattrs
