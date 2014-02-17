@@ -1,0 +1,289 @@
+Index: grails-app/conf/BuildConfig.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- grails-app/conf/BuildConfig.groovy	(revision 3a55ef2)
++++ grails-app/conf/BuildConfig.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -42,6 +42,7 @@
+         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes e.g.
+ 
+         // runtime 'mysql:mysql-connector-java:5.1.22'
++        runtime "org.postgresql:postgresql:9.2-1004-jdbc4"
+     }
+ 
+     plugins {
+Index: grails-app/conf/DataSource.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- grails-app/conf/DataSource.groovy	(revision 3a55ef2)
++++ grails-app/conf/DataSource.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -1,8 +1,8 @@
+ dataSource {
+     pooled = true
+-    driverClassName = "org.h2.Driver"
+-    username = "sa"
+-    password = ""
++    driverClassName = "org.postgresql.Driver"
++    username = "test"
++    password = "test"
+ }
+ hibernate {
+     cache.use_second_level_cache = true
+@@ -13,31 +13,23 @@
+ environments {
+     development {
+         dataSource {
+-            dbCreate = "create-drop" // one of 'create', 'create-drop', 'update', 'validate', ''
+-            url = "jdbc:h2:mem:devDb;MVCC=TRUE;LOCK_TIMEOUT=10000"
++//            dbCreate = "create-drop" // one of 'create', 'create-drop', 'update', 'validate', ''
++            dbCreate = "create-drop"
++            url = "jdbc:postgresql://localhost:5432/vacuum"
+         }
+     }
+     test {
+         dataSource {
+-            dbCreate = "update"
+-            url = "jdbc:h2:mem:testDb;MVCC=TRUE;LOCK_TIMEOUT=10000"
++//            dbCreate = "create-drop" // one of 'create', 'create-drop', 'update', 'validate', ''
++            dbCreate = "create-drop"
++            url = "jdbc:postgresql://localhost:5432/vacuum"
+         }
+     }
+     production {
+         dataSource {
+-            dbCreate = "update"
+-            url = "jdbc:h2:prodDb;MVCC=TRUE;LOCK_TIMEOUT=10000"
+-            pooled = true
+-            properties {
+-               maxActive = -1
+-               minEvictableIdleTimeMillis=1800000
+-               timeBetweenEvictionRunsMillis=1800000
+-               numTestsPerEvictionRun=3
+-               testOnBorrow=true
+-               testWhileIdle=true
+-               testOnReturn=true
+-               validationQuery="SELECT 1"
+-            }
++//            dbCreate = "create-drop" // one of 'create', 'create-drop', 'update', 'validate', ''
++            dbCreate = "create-drop"
++            url = "jdbc:postgresql://localhost:5432/vacuum"
+         }
+     }
+ }
+Index: grails-app/domain/ru/go/vacuum/model/AttributeItem.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- grails-app/domain/ru/go/vacuum/model/AttributeItem.groovy	(revision 3a55ef2)
++++ grails-app/domain/ru/go/vacuum/model/AttributeItem.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -4,16 +4,21 @@
+ 
+     String name
+     Object value
+-    Type type
++    TypeItem type
+ 
++    static mapping = {
++        type enumType: 'ordinal'
++    }
++
++    static constraints = {
++    }
++
+     public AttributeItem(){
+         this.name = null;
+         this.value = null;
+-        this.type = Type.STRING
++        this.type = TypeItem.STRING
+     }
+ 
+-    static constraints = {
+-    }
+ 
+     boolean equals(o) {
+         if (this.is(o)) return true
+@@ -49,7 +54,15 @@
+                 '}';
+     }
+ 
+-    enum Type{
+-        STRING, INTEGER, DOUBLE, IMAGE, BYTES
++    public enum TypeItem {
++        STRING(1),
++        INTEGER(2),
++        DOUBLE(3),
++        IMAGE(4),
++        BYTES(5)
++
++        final int id
++
++        private TypeItem(int id) { this.id = id }
+     }
+ }
+Index: grails-app/domain/ru/go/vacuum/model/StuffAttributes.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- grails-app/domain/ru/go/vacuum/model/StuffAttributes.groovy	(revision 3a55ef2)
++++ grails-app/domain/ru/go/vacuum/model/StuffAttributes.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -3,15 +3,22 @@
+ class StuffAttributes {
+ 
+     String title
+-    StuffCategory type
+-    StuffAttributes parent
++//    StuffCategory type
++//    StuffAttributes parent
+ 
+-
+     String description
+ 
+-    AttributeItem.Type attributeType = AttributeItem.Type.STRING
++    AttributeItem.TypeItem attributeType = AttributeItem.TypeItem.STRING
+ 
+-    List<AttributeItem> attributes
++//    List<AttributeItem> attributes
++
++    static belongsTo = [parent: StuffAttributes]
++    static hasMany = [attributes: AttributeItem]
++    static hasOne = [type: StuffCategory]
++
++    static mapping = {
++        attributeType enumType: 'ordinal'
++    }
+ 
+     static constraints = {
+     }
+Index: test/unit/ru/go/vacuum/model/StuffAttributesTests.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- test/unit/ru/go/vacuum/model/StuffAttributesTests.groovy	(revision 3a55ef2)
++++ test/unit/ru/go/vacuum/model/StuffAttributesTests.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -12,19 +12,19 @@
+ 
+     void testSizeAttributes(){
+ 
+-        def attrSize = new StuffAttributes(title: "Размеры Российские", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.Type.INTEGER)
++        def attrSize = new StuffAttributes(title: "Размеры Российские", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.TypeItem.INTEGER)
+ 
+         attrSize
+-                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.Type.INTEGER))
++                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.TypeItem.INTEGER))
+ 
+-        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.Type.STRING)
++        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.TypeItem.STRING)
+ 
+         attrColor
+-                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.Type.STRING))
++                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.TypeItem.STRING))
+ 
+ 
+         println "Размеры = " + attrSize
+Index: test/unit/ru/go/vacuum/model/StuffTests.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- test/unit/ru/go/vacuum/model/StuffTests.groovy	(revision 3a55ef2)
++++ test/unit/ru/go/vacuum/model/StuffTests.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -10,24 +10,33 @@
+ @TestFor(Stuff)
+ class StuffTests {
+ 
++    void testAttributeItem(){
++        def attr = new AttributeItem(name: "40", value: 40, type: AttributeItem.TypeItem.INTEGER)
++//        attr.id = 1
++        attr.save(flush: true, failOnError: true)
++    }
++
+     void testCreateStuff(){
+ 
+         def stuffCategory = new StuffCategory(name: "Одежда");
+ 
+-        def attrSize = new StuffAttributes(title: "Размеры Российские", type: stuffCategory, attributeType: AttributeItem.Type.INTEGER)
++        def attrSize = new StuffAttributes(title: "Размеры Российские", type: stuffCategory, attributeType: AttributeItem.TypeItem.INTEGER)
+ 
+         attrSize
+-                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.Type.INTEGER))
++                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.TypeItem.INTEGER))
+ 
+-        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.Type.STRING)
+ 
++        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.TypeItem.STRING)
++
+         attrColor
+-                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.Type.STRING))
++                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.TypeItem.STRING))
+ 
++        attrSize.save(flush: true, failOnError: true)
++        attrColor.save(flush: true, failOnError: true)
+ 
+         println "Размеры = " + attrSize
+         println "Цвета = " + attrColor
+@@ -39,6 +48,8 @@
+         stuff
+                 .addAttribute(attrSize)
+                 .addAttribute(attrColor)
++        stuff.save(flush: true, failOnError: true)
++
+ 
+         println ""
+         println "Вещь" + stuff
+Index: test/unit/ru/go/vacuum/model/core/SaleTests.groovy
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- test/unit/ru/go/vacuum/model/core/SaleTests.groovy	(revision 3a55ef2)
++++ test/unit/ru/go/vacuum/model/core/SaleTests.groovy	(revision a9115a9192eebc4d8f470b1c89b97ba62d89e936)
+@@ -20,19 +20,19 @@
+ 
+         def stuffType = new StuffCategory(name: "Одежда");
+ 
+-        def attrSize = new StuffAttributes(title: "Размеры Российские", type: stuffType, attributeType: AttributeItem.Type.INTEGER)
++        def attrSize = new StuffAttributes(title: "Размеры Российские", type: stuffType, attributeType: AttributeItem.TypeItem.INTEGER)
+ 
+         attrSize
+-                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.Type.INTEGER))
+-                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.Type.INTEGER))
++                .add(new AttributeItem(name: "40", value: 40, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "42", value: 42, type: AttributeItem.TypeItem.INTEGER))
++                .add(new AttributeItem(name: "46", value: 46, type: AttributeItem.TypeItem.INTEGER))
+ 
+-        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.Type.STRING)
++        def attrColor = new StuffAttributes(title: "Цвет отображения", type: new StuffCategory(name: "Одежда"), attributeType: AttributeItem.TypeItem.STRING)
+ 
+         attrColor
+-                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.Type.STRING))
+-                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.Type.STRING))
++                .add(new AttributeItem(name: "Красный", value: "#FF0000", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Синий", value: "#00FF00", type: AttributeItem.TypeItem.STRING))
++                .add(new AttributeItem(name: "Зеленый", value: "#0000FF", type: AttributeItem.TypeItem.STRING))
+ 
+ 
+         println "Размеры = " + attrSize
